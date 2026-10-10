@@ -1,0 +1,119 @@
+packaging_format = 2
+
+id = "minecraftfabric"
+name = "Minecraft Fabric"
+description.en = "Host a Minecraft Java (Fabric) server with BlueMap and Voxeldash web UIs"
+
+version = "26.2~ynh1"
+
+maintainers = ["quartztester"]
+
+[upstream]
+license = "LicenseRef-Minecraft-EULA"
+license_url = "https://account.mojang.com/documents/minecraft_eula"
+website = "https://www.minecraft.net/"
+admindoc = "https://minecraft.wiki/w/Server"
+code = "https://github.com/FabricMC/fabric-installer"
+
+[antifeatures]
+non-free-dependencies.en = "The Minecraft server binary is downloaded from Mojang and is proprietary; only the packaging, Fabric loader and (mod-dependent) add-ons are free."
+non-free-assets.en = "The game ships non-free art, sounds and textures embedded in the server jar."
+arbitrary-limitations.en = "Playing requires a paid Minecraft account (Mojang EULA); the server itself is free to run. Online-mode authentication needs a Mojang/Microsoft account for each player."
+
+[integration]
+yunohost = ">= 12.0"
+helpers_version = "2.1"
+architectures = ["amd64", "arm64"]
+multi_instance = false
+ldap = "not_relevant"
+sso = "not_relevant"
+disk = "4G"
+ram.build = "1G"
+ram.runtime = "3G"
+
+[install]
+    [install.domain]
+    type = "domain"
+
+    [install.path]
+    type = "path"
+    default = "/"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "visitors"
+    help.en = "Visitors keeps the web dashboard public (players without a YunoHost account can reach it). Pick a group to gate it behind SSO."
+
+    [install.minecraft_version]
+    ask.en = "Minecraft Java version to install"
+    help.en = "Any version the Fabric installer knows about, e.g. 1.21.1 or 26.2."
+    type = "string"
+    default = "26.2"
+
+    [install.ram_mb]
+    ask.en = "Server heap size in MB (e.g. 3072)"
+    help.en = "Java -Xms/-Xmx. 1024-2048 suits a small vanilla-ish server; modded servers want more."
+    type = "string"
+    default = "3072"
+
+    [install.accept_eula]
+    ask.en = "Accept the Minecraft EULA (https://account.mojang.com/documents/minecraft_eula)"
+    type = "boolean"
+    default = false
+
+    [install.bluemap_domain]
+    ask.en = "Sub-domain or full domain for the BlueMap web map (leave empty to skip)"
+    help.en = "Short form: type just a label such as 'map' and it becomes map.<your-main-domain> — created automatically if it does not exist yet. Or give a full existing domain (e.g. map.example.org)."
+    type = "string"
+    default = ""
+    optional = true
+
+    [install.import_dir]
+    ask.en = "Optional: path of an existing Minecraft server directory to import (leave empty for a fresh world)"
+    help.en = "Absolute path, e.g. /home/yunohost.app/old-server. Copies world, mods, configs and BlueMap data; server binaries are re-downloaded from Fabric/Mojang."
+    type = "string"
+    default = ""
+    optional = true
+
+[resources]
+    [resources.sources]
+        # Temurin 25 JRE — Minecraft 1.20.5+ requires Java 21+, and current
+        # Fabric loaders run happily on 25. Pinned per architecture.
+        [resources.sources.jre]
+        extract = true
+        in_subdir = 1
+        amd64.url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jre_x64_linux_hotspot_25.0.4.1_1.tar.gz"
+        amd64.sha256 = "1731a34baadec5479258ea0202e4d5d865d2efeee60cb0c7d7eb056fe96ca219"
+        arm64.url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jre_aarch64_linux_hotspot_25.0.4.1_1.tar.gz"
+        arm64.sha256 = "34828cbb93ed31c281c84ecb31ddab655d11a802f263c1fc019d42e9e0230fed"
+
+        # Fabric installer jar — run once at install to provision the server
+        # (downloads Mojang's server jar + fabric loader into data_dir).
+        [resources.sources.fabric]
+        extract = false
+        rename = "fabric-installer.jar"
+        url = "https://maven.fabricmc.net/net/fabricmc/fabric-installer/1.1.2/fabric-installer-1.1.2.jar"
+        sha256 = "61e035bf7bf70153e127440ce34de47c9036f0a2d0c65d1529454bd35ceefe4f"
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.data_dir]
+
+    [resources.permissions]
+        main.url = "/"
+
+    [resources.ports]
+    # Game port (TCP play + UDP query). Fixed so clients/router-forward stay stable.
+    main.default = 25565
+    main.exposed = "Both"
+    main.fixed = true
+    # Simple Voice Chat mod port (UDP). Only used if the mod is installed.
+    voice.default = 24454
+    voice.exposed = "Both"
+    voice.fixed = true
+    # BlueMap embedded web server — loopback only, proxied by nginx.
+    web.default = 8100
+    # Voxeldash dashboard — loopback only, proxied by nginx.
+    dash.default = 7867

@@ -1,0 +1,41 @@
+#!/bin/bash
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Restoring systemd unit..."
+ynh_safe_rm "/etc/systemd/system/$app.service"
+ynh_restore "/etc/systemd/system/$app.service"
+
+ynh_script_progression "Restoring server data (world, mods, configs, web UI data)..."
+ynh_restore "$data_dir"
+chown -R "$app:$app" "$data_dir"
+
+ynh_script_progression "Ensuring the Java runtime and Fabric installer are present..."
+# A restore onto a fresh machine has the data but not the install_dir payload.
+if [ ! -x "$install_dir/jre/bin/java" ]; then
+    ynh_setup_source --dest_dir="$install_dir/jre" --source_id=jre
+fi
+if [ ! -f "$install_dir/fabric-installer.jar" ]; then
+    ynh_setup_source --dest_dir="$install_dir" --source_id=fabric
+fi
+if [ ! -f "$data_dir/fabric-server-launch.jar" ]; then
+    ynh_print_warn "fabric-server-launch.jar missing from the restored data — re-run: java -jar $install_dir/fabric-installer.jar server -dir $data_dir -mcversion <version> -loader latest"
+fi
+
+ynh_script_progression "Re-rendering nginx configs..."
+domain=$(ynh_app_setting_get --key=domain || echo "")
+if [ -n "${domain:-}" ] && [ -d "/etc/nginx/conf.d/$domain.d" ]; then
+    ynh_config_add_nginx
+fi
+bluemap_domain=$(ynh_app_setting_get --key=bluemap_domain 2>/dev/null || echo "")
+if [ -n "${bluemap_domain:-}" ] && [ -d "/etc/nginx/conf.d/$bluemap_domain.d" ]; then
+    ynh_config_add --template=bluemap-nginx.conf \
+        --destination="/etc/nginx/conf.d/$bluemap_domain.d/$app.conf"
+    ynh_store_file_checksum "/etc/nginx/conf.d/$bluemap_domain.d/$app.conf"
+fi
+
+ynh_script_progression "Restarting the server..."
+systemctl daemon-reload
+# The unit file was restored by path, but the boot-time enable symlink is
+# not part of it — without this the server would not start after a reboot.
+systemctl enable "$app" >/dev/null 2>&1 || true
+systemctl restart "$app" || true

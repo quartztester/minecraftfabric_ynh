@@ -1,0 +1,27 @@
+#!/bin/bash
+source /usr/share/yunohost/helpers
+
+ynh_script_progression "Stopping the Minecraft server..."
+systemctl stop "$app" 2>/dev/null || true
+
+ynh_script_progression "Removing nginx, systemd unit and BlueMap fragment..."
+ynh_config_remove_nginx
+ynh_config_remove_systemd
+systemctl daemon-reload
+
+bluemap_domain=$(ynh_app_setting_get --key=bluemap_domain 2>/dev/null || echo "")
+if [ -n "${bluemap_domain:-}" ]; then
+    ynh_safe_rm "/etc/nginx/conf.d/$bluemap_domain.d/$app.conf"
+    ynh_delete_file_checksum "/etc/nginx/conf.d/$bluemap_domain.d/$app.conf" 2>/dev/null || true
+    ynh_systemctl --service=nginx --action=reload
+    # NB: the bluemap domain object itself belongs to the admin, not the app —
+    # it is intentionally left in place.
+fi
+
+ynh_script_progression "Removing server data (world saves, mods, BlueMap tiles)..."
+ynh_safe_rm "$data_dir"
+
+ynh_script_progression "Removing runtime (JRE, Fabric installer)..."
+ynh_safe_rm "$install_dir"
+
+# (game/voice ports are closed by the ports resource deprovision)

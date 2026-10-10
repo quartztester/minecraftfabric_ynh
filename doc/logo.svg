@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Isometric "game world" block: grass top, dirt sides, voxels -->
+  <defs>
+    <style>.s{shape-rendering:crispEdges}</style>
+  </defs>
+  <g class="s">
+    <!-- cube geometry: center 256, top vertex 40, half-width 216, edge drop 108, body 216 -->
+    <!-- top face (grass, three greens) -->
+    <polygon points="256,40 472,148 256,256 40,148" fill="#5db44e"/>
+    <polygon points="256,40 364,94 256,148 148,94" fill="#79cc63"/>
+    <polygon points="148,202 256,148 364,202 256,256" fill="#4c9a3f"/>
+    <!-- left face (dirt) -->
+    <polygon points="40,148 256,256 256,472 40,364" fill="#8a6243"/>
+    <!-- right face (dirt, darker) -->
+    <polygon points="256,256 472,148 472,364 256,472" fill="#6f4c31"/>
+    <!-- grass fringe left -->
+    <polygon points="40,148 256,256 256,290 40,182" fill="#5db44e" opacity="0.9"/>
+    <!-- grass fringe right -->
+    <polygon points="256,256 472,148 472,182 256,290" fill="#4c9a3f" opacity="0.9"/>
+    <!-- dirt speckles: left face -->
+    <polygon points="90,220 124,237 124,265 90,248" fill="#77543a"/>
+    <polygon points="170,290 204,307 204,335 170,318" fill="#9c7452"/>
+    <polygon points="75,300 109,317 109,345 75,328" fill="#9c7452"/>
+    <polygon points="190,370 224,387 224,415 190,398" fill="#77543a"/>
+    <!-- dirt speckles: right face -->
+    <polygon points="300,320 334,303 334,331 300,348" fill="#5d3f28"/>
+    <polygon points="390,270 424,253 424,281 390,298" fill="#805a3c"/>
+    <polygon points="310,410 344,393 344,421 310,438" fill="#805a3c"/>
+    <polygon points="410,350 444,333 444,361 410,378" fill="#5d3f28"/>
+  </g>
+</svg>

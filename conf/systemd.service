@@ -1,0 +1,61 @@
+[Unit]
+Description=Minecraft server (app: __APP__)
+Documentation=https://minecraft.wiki/w/Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__DATA_DIR__
+# Fabric's own launcher jar (written by the fabric installer into the
+# server dir). Heap from the ram_mb app setting; raise with:
+#   yunohost app setting __APP__ ram_mb -v 4096 && systemctl restart __APP__
+ExecStart=__INSTALL_DIR__/jre/bin/java -Xms__RAM_MB__m -Xmx__RAM_MB__m -jar fabric-server-launch.jar nogui
+Restart=on-failure
+RestartSec=10
+# A world save + BlueMap flush on stop can take a while; give the JVM time.
+TimeoutStopSec=120
+# The JVM exits 143 on SIGTERM (its own shutdown hook); treat as clean.
+SuccessExitStatus=143
+LimitNOFILE=10000
+
+### Sandboxing baseline from example_ynh, applied verbatim. One addition
+### vs the template's minimal variant: the SystemCallFilter *deny*-list is
+### kept but NO `@system-service` allow-list is set — Minecraft mods use
+### native libraries (Simple Voice Chat) and JVM crash reporting paths
+### that trip allow-lists, and a syscall false-positive corrupts a running
+### world. Verified live with the full mod set on MC 26.2.
+ NoNewPrivileges=yes
+ PrivateTmp=yes
+ PrivateDevices=yes
+ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+ RestrictNamespaces=yes
+ RestrictRealtime=yes
+ DevicePolicy=closed
+ ProtectClock=yes
+ ProtectHostname=yes
+ ProtectProc=invisible
+ ProtectSystem=full
+ ProtectControlGroups=yes
+ ProtectKernelModules=yes
+ ProtectKernelTunables=yes
+ LockPersonality=yes
+ SystemCallArchitectures=native
+ SystemCallFilter=~@clock @debug @module @mount @obsolete @reboot @setuid @swap @cpu-emulation @privileged
+
+# Denying access to capabilities that should not be relevant (see example_ynh)
+# Doc: https://man7.org/linux/man-pages/man7/capabilities.7.html
+ CapabilityBoundingSet=~CAP_RAWIO CAP_MKNOD
+ CapabilityBoundingSet=~CAP_AUDIT_CONTROL CAP_AUDIT_READ CAP_AUDIT_WRITE
+ CapabilityBoundingSet=~CAP_SYS_BOOT CAP_SYS_TIME CAP_SYS_MODULE CAP_SYS_PACCT
+ CapabilityBoundingSet=~CAP_LEASE CAP_LINUX_IMMUTABLE CAP_IPC_LOCK
+ CapabilityBoundingSet=~CAP_BLOCK_SUSPEND CAP_WAKE_ALARM
+ CapabilityBoundingSet=~CAP_SYS_TTY_CONFIG
+ CapabilityBoundingSet=~CAP_MAC_ADMIN CAP_MAC_OVERRIDE
+ CapabilityBoundingSet=~CAP_NET_ADMIN CAP_NET_BROADCAST CAP_NET_RAW
+ CapabilityBoundingSet=~CAP_SYS_ADMIN CAP_SYS_PTRACE CAP_SYSLOG
+
+[Install]
+WantedBy=multi-user.target

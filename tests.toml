@@ -1,0 +1,17 @@
+#:schema https://raw.githubusercontent.com/YunoHost/apps/main/schemas/tests.v1.schema.json
+
+test_format = 1.0
+
+[default]
+
+    # The embedded web UIs (Voxeldash dashboard, BlueMap map) use absolute
+    # URLs; the package refuses non-root installs by design, so the
+    # sub-path scenario does not apply.
+    exclude = ["install.subdir"]
+
+    # The EULA question defaults to false (an install must be an explicit
+    # acceptance); CI obviously accepts it.
+    args.accept_eula = true
+
+    # Keep the CI JVM small: 3 GB heap would OOM the test containers.
+    args.ram_mb = "1024"

@@ -1,0 +1,154 @@
+#!/bin/bash
+source /usr/share/yunohost/helpers
+
+if [ "${accept_eula}" != "1" ] && [ "${accept_eula}" != "true" ]; then
+    ynh_die --message="You must accept the Minecraft EULA (https://account.mojang.com/documents/minecraft_eula) to install this server."
+fi
+
+ram_mb="${ram_mb:-3072}"
+bluemap_domain="${bluemap_domain:-}"
+import_dir="${import_dir:-}"
+
+# The embedded web UIs (Voxeldash dashboard, BlueMap map) build absolute
+# URLs; a subpath install half-works at best.
+if [ "${path:-/}" != "/" ]; then
+    ynh_die --message="The bundled web UIs use absolute URLs and only work at the root of a domain — pick path '/'."
+fi
+
+# Convenience: bluemap_domain accepts a bare label ("map") and expands it
+# to map.<main-domain>; a full domain is taken as-is. Labels are created
+# automatically (with cert) when missing — subdomains need no DNS surgery
+# on the usual wildcard/DNS setups, and cert issuance proves the record.
+if [ -n "$bluemap_domain" ] && ! [[ "$bluemap_domain" == *.* ]]; then
+    main_domain=$(yunohost domain list --output-as json | jq -r '.main[0]')
+    bluemap_domain="${bluemap_domain}.${main_domain}"
+    ynh_print_info "BlueMap label expanded to $bluemap_domain"
+    # Persist the EXPANDED value: upgrade/restore/remove read this setting
+    # back and must not re-derive it (main domain could change later).
+    ynh_app_setting_set --key=bluemap_domain --value="$bluemap_domain"
+fi
+if [ -n "$bluemap_domain" ] && [ ! -d "/etc/nginx/conf.d/$bluemap_domain.d" ]; then
+    ynh_script_progression "Creating domain $bluemap_domain (with Let's Encrypt)..."
+    yunohost domain add "$bluemap_domain" || ynh_die --message="Could not create $bluemap_domain — create it manually (yunohost domain add) or pass an already-existing domain."
+    yunohost domain cert install "$bluemap_domain" --no-checks || ynh_print_warn "Cert for $bluemap_domain not issued yet; retry later: yunohost domain cert install $bluemap_domain"
+fi
+
+#=================================================
+# RUNTIME: Temurin JRE + Fabric installer
+#=================================================
+ynh_script_progression "Provisioning the Temurin Java runtime..."
+ynh_setup_source --dest_dir="$install_dir/jre" --source_id=jre
+
+ynh_script_progression "Provisioning the Fabric installer..."
+ynh_setup_source --dest_dir="$install_dir" --source_id=fabric
+
+#=================================================
+# IMPORT AN EXISTING SERVER (optional)
+# Copy world, mods, configs and BlueMap data from a pre-existing server
+# directory. Binaries (server jar, fabric loader, JRE) are NOT imported —
+# they are (re)provisioned by this package.
+#=================================================
+if [ -n "$import_dir" ]; then
+    if [ ! -f "$import_dir/server.properties" ] && [ ! -d "$import_dir/world" ]; then
+        ynh_die --message="import_dir '$import_dir' does not look like a Minecraft server dir (no server.properties, no world/)."
+    fi
+    ynh_script_progression "Importing existing server from $import_dir..."
+    for item in world world_nether world_the_end mods config plugins bluemap \
+                server.properties eula.txt ops.json whitelist.json \
+                banned-players.json banned-ips.json usercache.json; do
+        if [ -e "$import_dir/$item" ]; then
+            rsync -a "$import_dir/$item" "$data_dir/"
+        fi
+    done
+    # A stale hand-run launcher can disagree with the systemd unit; drop it.
+    ynh_safe_rm "$data_dir/startup.sh"
+
+    # Re-align the embedded web UIs' ports with the package's port
+    # resources (an imported config may bind the OLD ports, so nginx would
+    # proxy to nothing). server.properties is handled by the PORT ALIGNMENT
+    # section below, which runs for imports too.
+    [ -f "$data_dir/config/voicechat/voicechat-server.properties" ] && \
+        sed -i "s/^port=.*/port=$port_voice/" "$data_dir/config/voicechat/voicechat-server.properties"
+    [ -f "$data_dir/config/bluemap/webserver.conf" ] && \
+        sed -i "s/^port:.*/port: $port_web/" "$data_dir/config/bluemap/webserver.conf"
+fi
+
+#=================================================
+# EULA (must exist before the Fabric installer runs the server jar)
+#=================================================
+echo "eula=true" > "$data_dir/eula.txt"
+
+#=================================================
+# PORT ALIGNMENT
+# Fresh installs default server.properties to 25565 — which may be taken
+# by another server on this box. Always pin the game port to the port
+# resource so systemd, the firewall and reality agree. (Write it now:
+# the file is created on first boot and would otherwise win.)
+#=================================================
+if [ -f "$data_dir/server.properties" ]; then
+    sed -i -e "s/^server-port=.*/server-port=$port/" -e "s/^query.port=.*/query.port=$port/" "$data_dir/server.properties"
+else
+    printf 'server-port=%s\nquery.port=%s\n' "$port" "$port" > "$data_dir/server.properties"
+fi
+
+#=================================================
+# FABRIC SERVER PROVISIONING
+# The installer downloads Mojang's server jar + fabric loader and writes
+# fabric-server-launch.jar, which the systemd unit execs.
+#=================================================
+if [ ! -f "$data_dir/fabric-server-launch.jar" ]; then
+    ynh_script_progression "Installing Minecraft $minecraft_version with Fabric (downloads from Mojang/FabricMC)..."
+    # -downloadMinecraft is REQUIRED: without it the installer writes a
+    # launcher expecting a server.jar that only a GUI/terminal client owns,
+    # and the headless server dies with "Missing game jar".
+    ynh_exec_as_app "$install_dir/jre/bin/java" -jar "$install_dir/fabric-installer.jar" \
+        server -dir "$data_dir" -mcversion "$minecraft_version" -loader latest -downloadMinecraft
+    if [ ! -f "$data_dir/fabric-server-launch.jar" ]; then
+        ynh_die --message="Fabric installer did not produce fabric-server-launch.jar in $data_dir — check network access to piston-data.mojang.com and maven.fabricmc.net"
+    fi
+else
+    ynh_script_progression "fabric-server-launch.jar already present — keeping the existing server binaries."
+fi
+
+chown -R "$app:$app" "$data_dir"
+
+#=================================================
+# SYSTEMD + NGINX
+#=================================================
+ynh_script_progression "Configuring systemd service..."
+ynh_config_add_systemd
+
+ynh_script_progression "Configuring nginx (dashboard at https://$domain$path)..."
+ynh_config_add_nginx
+
+if [ -n "$bluemap_domain" ]; then
+    # A dedicated map domain may still carry the OLD hand-written proxy
+    # fragment; two `location /` blocks in one vhost = nginx refuses to
+    # reload. Retire any other fragment (rename, reversible) since this
+    # package now provides the proxy for this domain.
+    for frag in /etc/nginx/conf.d/$bluemap_domain.d/*.conf; do
+        [ -e "$frag" ] || continue
+        [ "$(basename "$frag")" = "$app.conf" ] && continue
+        if grep -qE '^[[:space:]]*location[[:space:]]+/' "$frag"; then
+            ynh_print_warn "Retiring pre-existing fragment $(basename "$frag") -> $(basename "$frag").pre-$app"
+            mv "$frag" "$frag.pre-$app"
+        fi
+    done
+    ynh_script_progression "Publishing BlueMap on https://$bluemap_domain (public, no SSO)..."
+    ynh_config_add --template=bluemap-nginx.conf \
+        --destination="/etc/nginx/conf.d/$bluemap_domain.d/$app.conf"
+    ynh_store_file_checksum "/etc/nginx/conf.d/$bluemap_domain.d/$app.conf"
+    ynh_systemctl --service=nginx --action=reload
+fi
+
+#=================================================
+# START + READINESS
+# A first boot generates worlds/levelname etc. and can take a while on
+# HDD; poll the dashboard/loopback rather than fixed-sleeping.
+#=================================================
+ynh_script_progression "Starting the server (first boot generates the world)..."
+ynh_systemctl --service="$app" --action=start --log_path=systemd --wait_until="Done \(" --timeout=600 || \
+    ynh_print_warn "Server did not report 'Done' within 10 min — it may still be starting; check: journalctl -u $app"
+
+ynh_script_progression "Done. Dashboard: https://$domain$path — game port $port (TCP+UDP), voice port $port_voice (UDP). Data dir: $data_dir"
+ynh_script_progression "IMPORTANT (behind NAT): forward TCP+UDP $port (and UDP $port_voice if using voice chat) on your router to this server, or players from outside your LAN cannot connect."

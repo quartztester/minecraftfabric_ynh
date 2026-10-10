@@ -1,0 +1,18 @@
+#!/bin/bash
+source /usr/share/yunohost/helpers
+
+if [ "$path" != "/" ]; then
+    ynh_die --message="The bundled web UIs use absolute URLs and only work at the root of a domain (path must be '/')."
+fi
+
+ynh_script_progression "Moving $app dashboard from $old_domain$old_path to $domain$path..."
+
+ynh_safe_rm "/etc/nginx/conf.d/$old_domain.d/$app.conf"
+rmdir "/etc/nginx/conf.d/$old_domain.d" 2>/dev/null || true
+
+ynh_app_setting_set --key=domain --value="$domain"
+ynh_app_setting_set --key=path --value="$path"
+
+ynh_config_add_nginx
+
+ynh_script_progression "Done. Dashboard: https://$domain$path (game server itself is unaffected — same IP:port)."
