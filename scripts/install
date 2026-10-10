@@ -121,6 +121,12 @@ ynh_config_add_systemd
 ynh_script_progression "Configuring nginx (dashboard at https://$domain$path)..."
 ynh_config_add_nginx
 
+# Tile logo for the SSO portal (supported override for non-catalog apps)
+if [ -f "$YNH_APP_BASEDIR/doc/logo.png" ]; then
+    cp "$YNH_APP_BASEDIR/doc/logo.png" "/usr/share/yunohost/applogos/$app.png"
+    yunohost user permission update "$app.main" --logo "/usr/share/yunohost/applogos/$app.png" || true
+fi
+
 if [ -n "$bluemap_domain" ]; then
     # A dedicated map domain may still carry the OLD hand-written proxy
     # fragment; two `location /` blocks in one vhost = nginx refuses to

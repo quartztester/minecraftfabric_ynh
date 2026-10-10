@@ -4,7 +4,7 @@ id = "minecraftfabric"
 name = "Minecraft Fabric"
 description.en = "Host a Minecraft Java (Fabric) server with BlueMap and Voxeldash web UIs"
 
-version = "26.2~ynh1"
+version = "26.2~ynh2"
 
 maintainers = ["quartztester"]
 
