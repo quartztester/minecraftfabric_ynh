@@ -4,14 +4,14 @@ It shall NOT be edited by hand.
 -->
 
 <h1>
-  <img src="doc/logo.png" width="32px" alt="Logo of Minecraft Fabric">
+  <img src="logos/minecraftfabric.png" width="32px" alt="Logo of Minecraft Fabric">
   Minecraft Fabric, packaged for YunoHost
 </h1>
 
 Host a Minecraft Java (Fabric) server with BlueMap and Voxeldash web UIs
 
 [![🌐 Official app website](https://img.shields.io/badge/Official_app_website-darkgreen?style=for-the-badge)](https://www.minecraft.net/)
-[![Version: 26.2~ynh1](https://img.shields.io/badge/Version-26.2~ynh2-rgb(18,138,11)?style=for-the-badge)](https://ci-apps.yunohost.org/ci/apps/minecraftfabric/)
+[![Version: 26.2~ynh1](https://img.shields.io/badge/Version-26.2~ynh2-rgb%2818,138,11%29?style=for-the-badge)](https://ci-apps.yunohost.org/ci/apps/minecraftfabric/)
 
 <div align="center">
 <a href="https://apps.yunohost.org/app/minecraftfabric"><img height="100px" src="https://github.com/YunoHost/yunohost-artwork/raw/refs/heads/main/badges/neopossum-badges/badge_more_info_on_the_appstore.svg"/></a>
@@ -19,7 +19,8 @@ Host a Minecraft Java (Fabric) server with BlueMap and Voxeldash web UIs
 </div>
 
 ## Screenshots
-![Screenshot of Minecraft server](./doc/screenshots/dashboard.png)
+
+![Minecraft Fabric server — dashboard](./doc/screenshots/dashboard.png)
 
 ## 📦 Developer info
 
