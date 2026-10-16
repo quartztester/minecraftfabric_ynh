@@ -1,8 +1,22 @@
 #!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
 source /usr/share/yunohost/helpers
+
+#=================================================
+# STOP SYSTEMD SERVICE
+#=================================================
 
 ynh_script_progression "Stopping the Minecraft server..."
 systemctl stop "$app" 2>/dev/null || true
+
+#=================================================
+# REMOVE SYSTEM CONFIGURATION
+#=================================================
 
 ynh_script_progression "Removing nginx, systemd unit and BlueMap fragment..."
 ynh_config_remove_nginx
@@ -19,10 +33,22 @@ if [ -n "${bluemap_domain:-}" ]; then
     # it is intentionally left in place.
 fi
 
+#=================================================
+# REMOVE SERVER DATA
+#=================================================
+
 ynh_script_progression "Removing server data (world saves, mods, BlueMap tiles)..."
 ynh_safe_rm "$data_dir"
+
+#=================================================
+# REMOVE RUNTIME (JRE, FABRIC INSTALLER)
+#=================================================
 
 ynh_script_progression "Removing runtime (JRE, Fabric installer)..."
 ynh_safe_rm "$install_dir"
 
 # (game/voice ports are closed by the ports resource deprovision)
+
+#=================================================
+# END OF SCRIPT
+#=================================================

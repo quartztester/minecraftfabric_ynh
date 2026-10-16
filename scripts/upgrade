@@ -1,5 +1,15 @@
 #!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
 source /usr/share/yunohost/helpers
+
+#=================================================
+# REFRESH RUNTIME SOURCES
+#=================================================
 
 # NB: $data_dir/$install_dir come from app settings — never hardcode.
 
@@ -11,6 +21,10 @@ if [ ! -f "$install_dir/fabric-installer.jar" ]; then
     ynh_setup_source --dest_dir="$install_dir" --source_id=fabric
 fi
 
+#=================================================
+# REAPPLY SYSTEM CONFIGURATION
+#=================================================
+
 ynh_script_progression "Re-rendering systemd unit and nginx config..."
 ynh_safe_rm "/etc/systemd/system/$app.service"
 ynh_config_add_systemd
@@ -21,11 +35,19 @@ if [ -n "${domain:-}" ]; then
     ynh_config_add_nginx
 fi
 
+#=================================================
+# UPDATE PORTAL LOGO
+#=================================================
+
 # Keep the SSO portal tile logo in sync with the package
 if [ -f "$YNH_APP_BASEDIR/doc/logo.png" ]; then
     cp "$YNH_APP_BASEDIR/doc/logo.png" "/usr/share/yunohost/applogos/$app.png"
     yunohost user permission update "$app.main" --logo "/usr/share/yunohost/applogos/$app.png" || true
 fi
+
+#=================================================
+# REFRESH BLUEMAP NGINX FRAGMENT
+#=================================================
 
 bluemap_domain=$(ynh_app_setting_get --key=bluemap_domain 2>/dev/null || echo "")
 if [ -n "${bluemap_domain:-}" ] && [ -d "/etc/nginx/conf.d/$bluemap_domain.d" ]; then
@@ -42,6 +64,10 @@ if [ -n "${bluemap_domain:-}" ] && [ -d "/etc/nginx/conf.d/$bluemap_domain.d" ];
     ynh_store_file_checksum "/etc/nginx/conf.d/$bluemap_domain.d/$app.conf"
 fi
 
+#=================================================
+# HEAL MISSING SERVER LAUNCHER
+#=================================================
+
 # Self-heal: an imported-but-broken install may lack the launcher jar.
 if [ ! -f "$data_dir/fabric-server-launch.jar" ] && [ -f "$install_dir/fabric-installer.jar" ]; then
     minecraft_version=$(ynh_app_setting_get --key=minecraft_version || echo "")
@@ -56,8 +82,16 @@ if [ ! -f "$data_dir/fabric-server-launch.jar" ] && [ -f "$install_dir/fabric-in
 fi
 chown -R "$app:$app" "$data_dir" 2>/dev/null || true
 
+#=================================================
+# RESTART THE SERVER
+#=================================================
+
 systemctl daemon-reload
 ynh_systemctl --service="$app" --action=restart --log_path=systemd --wait_until="Done \(" --timeout=600 || \
     ynh_print_warn "Server did not report 'Done' within 10 min — check: journalctl -u $app"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
 
 ynh_script_progression "Upgrade complete. To change Minecraft version, install mods, or tune heap: edit files in $data_dir / the ram_mb setting, then systemctl restart $app"

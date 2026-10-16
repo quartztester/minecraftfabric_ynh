@@ -1,5 +1,16 @@
 #!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+# Keep this path for calling _common.sh inside the execution's context of backup and restore scripts
+source ../settings/scripts/_common.sh
 source /usr/share/yunohost/helpers
+
+#=================================================
+# BACKUP THE SERVER DATA
+#=================================================
 
 ynh_print_info "Declaring files to be backed up..."
 
@@ -7,8 +18,17 @@ ynh_print_info "Declaring files to be backed up..."
 # Voxeldash DB — is what this app IS. This is exactly the archive that
 # keeps the world out of Nextcloud's backups and file scans.
 ynh_backup "$data_dir"
+
+#=================================================
+# BACKUP SYSTEM CONFIGURATION
+#=================================================
+
 ynh_backup "/etc/systemd/system/$app.service"
 
 # NB: the BlueMap nginx fragment is deliberately NOT archived — it is
 # regenerated from the package template by restore (same as the main
 # vhost fragment).
+
+#=================================================
+# END OF SCRIPT
+#=================================================

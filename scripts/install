@@ -1,5 +1,15 @@
 #!/bin/bash
+
+#=================================================
+# IMPORT GENERIC HELPERS
+#=================================================
+
+source _common.sh
 source /usr/share/yunohost/helpers
+
+#=================================================
+# CHECK ARGUMENTS AND DEFAULTS
+#=================================================
 
 if [ "${accept_eula}" != "1" ] && [ "${accept_eula}" != "true" ]; then
     ynh_die --message="You must accept the Minecraft EULA (https://account.mojang.com/documents/minecraft_eula) to install this server."
@@ -14,6 +24,10 @@ import_dir="${import_dir:-}"
 if [ "${path:-/}" != "/" ]; then
     ynh_die --message="The bundled web UIs use absolute URLs and only work at the root of a domain — pick path '/'."
 fi
+
+#=================================================
+# PREPARE BLUEMAP DOMAIN
+#=================================================
 
 # Convenience: bluemap_domain accepts a bare label ("map") and expands it
 # to map.<main-domain>; a full domain is taken as-is. Labels are created
@@ -34,7 +48,7 @@ if [ -n "$bluemap_domain" ] && [ ! -d "/etc/nginx/conf.d/$bluemap_domain.d" ]; t
 fi
 
 #=================================================
-# RUNTIME: Temurin JRE + Fabric installer
+# RUNTIME: TEMURIN JRE + FABRIC INSTALLER
 #=================================================
 ynh_script_progression "Provisioning the Temurin Java runtime..."
 ynh_setup_source --dest_dir="$install_dir/jre" --source_id=jre
@@ -74,7 +88,7 @@ if [ -n "$import_dir" ]; then
 fi
 
 #=================================================
-# EULA (must exist before the Fabric installer runs the server jar)
+# EULA (MUST EXIST BEFORE THE FABRIC INSTALLER RUNS THE SERVER JAR)
 #=================================================
 echo "eula=true" > "$data_dir/eula.txt"
 
@@ -157,4 +171,9 @@ ynh_systemctl --service="$app" --action=start --log_path=systemd --wait_until="D
     ynh_print_warn "Server did not report 'Done' within 10 min — it may still be starting; check: journalctl -u $app"
 
 ynh_script_progression "Done. Dashboard: https://$domain$path — game port $port (TCP+UDP), voice port $port_voice (UDP). Data dir: $data_dir"
+
+#=================================================
+# END OF SCRIPT
+#=================================================
+
 ynh_script_progression "IMPORTANT (behind NAT): forward TCP+UDP $port (and UDP $port_voice if using voice chat) on your router to this server, or players from outside your LAN cannot connect."
