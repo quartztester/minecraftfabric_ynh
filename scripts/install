@@ -131,6 +131,7 @@ chown -R "$app:$app" "$data_dir"
 #=================================================
 ynh_script_progression "Configuring systemd service..."
 ynh_config_add_systemd
+yunohost service add "$app" --description="Minecraft server" --needs_exposed_ports "$port" "$port_voice"
 
 ynh_script_progression "Configuring nginx (dashboard at https://$domain$path)..."
 ynh_config_add_nginx

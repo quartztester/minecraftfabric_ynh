@@ -28,6 +28,7 @@ fi
 ynh_script_progression "Re-rendering systemd unit and nginx config..."
 ynh_safe_rm "/etc/systemd/system/$app.service"
 ynh_config_add_systemd
+yunohost service add "$app" --description="Minecraft server" --needs_exposed_ports "$port" "$port_voice"
 
 domain=$(ynh_app_setting_get --key=domain || echo "")
 if [ -n "${domain:-}" ]; then
