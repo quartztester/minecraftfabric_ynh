@@ -11,10 +11,9 @@ It shall NOT be edited by hand.
 Host a Minecraft Java (Fabric) server with BlueMap and Voxeldash web UIs
 
 [![🌐 Official app website](https://img.shields.io/badge/Official_app_website-darkgreen?style=for-the-badge)](https://www.minecraft.net/)
-[![Version: 26.2~ynh1](https://img.shields.io/badge/Version-26.2~ynh2-rgb%2818,138,11%29?style=for-the-badge)](https://ci-apps.yunohost.org/ci/apps/minecraftfabric/)
+![Version: 26.2~ynh2](https://img.shields.io/badge/Version-26.2~ynh2-rgb%2818,138,11%29?style=for-the-badge)
 
 <div align="center">
-<a href="https://apps.yunohost.org/app/minecraftfabric"><img height="100px" src="https://github.com/YunoHost/yunohost-artwork/raw/refs/heads/main/badges/neopossum-badges/badge_more_info_on_the_appstore.svg"/></a>
 <a href="https://github.com/quartztester/minecraftfabric_ynh/issues"><img height="100px" src="https://github.com/YunoHost/yunohost-artwork/raw/refs/heads/main/badges/neopossum-badges/badge_report_an_issue.svg"/></a>
 </div>
 
@@ -24,7 +23,6 @@ Host a Minecraft Java (Fabric) server with BlueMap and Voxeldash web UIs
 
 ## 📦 Developer info
 
-[![Automatic tests level](https://apps.yunohost.org/badge/cilevel/minecraftfabric)](https://ci-apps.yunohost.org/ci/apps/minecraftfabric/)
 
 🛠️ Upstream Fabric installer repository: <https://github.com/FabricMC/fabric-installer>
 
