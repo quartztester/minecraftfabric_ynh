@@ -1,5 +1,7 @@
 # Admin notes
 
+Single instance only (`multi_instance = false`): the server binds one fixed game port per machine.
+
 ## First steps after install
 
 1. Forward **TCP+UDP __PORT__** (game) and **UDP __PORT_VOICE__** (voice

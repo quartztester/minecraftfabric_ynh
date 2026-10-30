@@ -24,6 +24,7 @@ arbitrary-limitations.en = "Playing requires a paid Minecraft account (Mojang EU
 yunohost = ">= 12.0"
 helpers_version = "2.1"
 architectures = ["amd64", "arm64"]
+# single instance: the server binds one fixed game port per machine
 multi_instance = false
 ldap = "not_relevant"
 sso = "not_relevant"
