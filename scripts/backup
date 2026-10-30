@@ -14,9 +14,7 @@ source /usr/share/yunohost/helpers
 
 ynh_print_info "Declaring files to be backed up..."
 
-# The whole server data dir — world saves, mods, configs, BlueMap tiles,
-# Voxeldash DB — is what this app IS. This is exactly the archive that
-# keeps the world out of Nextcloud's backups and file scans.
+# $data_dir is what this app IS (world, mods, tiles); deliberately kept out of Nextcloud backups/scans.
 ynh_backup "$data_dir"
 
 #=================================================
@@ -25,9 +23,7 @@ ynh_backup "$data_dir"
 
 ynh_backup "/etc/systemd/system/$app.service"
 
-# NB: the BlueMap nginx fragment is deliberately NOT archived — it is
-# regenerated from the package template by restore (same as the main
-# vhost fragment).
+# NB: BlueMap nginx fragment not archived — restore regenerates it from the package template.
 
 #=================================================
 # END OF SCRIPT

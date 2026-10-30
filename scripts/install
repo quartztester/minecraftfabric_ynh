@@ -25,8 +25,7 @@ ram_mb="${ram_mb:-3072}"
 bluemap_domain="${bluemap_domain:-}"
 import_dir="${import_dir:-}"
 
-# The embedded web UIs (Voxeldash dashboard, BlueMap map) build absolute
-# URLs; a subpath install half-works at best.
+# Voxeldash/BlueMap web UIs build absolute URLs — a subpath install half-works at best.
 if [ "${path:-/}" != "/" ]; then
     ynh_die --message="The bundled web UIs use absolute URLs and only work at the root of a domain — pick path '/'."
 fi
@@ -35,16 +34,12 @@ fi
 # PREPARE BLUEMAP DOMAIN
 #=================================================
 
-# Convenience: bluemap_domain accepts a bare label ("map") and expands it
-# to map.<main-domain>; a full domain is taken as-is. Labels are created
-# automatically (with cert) when missing — subdomains need no DNS surgery
-# on the usual wildcard/DNS setups, and cert issuance proves the record.
+# bluemap_domain accepts a bare label; expands to <label>.<main-domain>, auto-created with cert (wildcard DNS makes this safe).
 if [ -n "$bluemap_domain" ] && ! [[ "$bluemap_domain" == *.* ]]; then
     main_domain=$(yunohost domain list --output-as json | jq -r '.main[0]')
     bluemap_domain="${bluemap_domain}.${main_domain}"
     ynh_print_info "BlueMap label expanded to $bluemap_domain"
-    # Persist the EXPANDED value: upgrade/restore/remove read this setting
-    # back and must not re-derive it (main domain could change later).
+    # Persist the EXPANDED value — upgrade/restore/remove must not re-derive it (main domain can change).
     ynh_app_setting_set --key=bluemap_domain --value="$bluemap_domain"
 fi
 if [ -n "$bluemap_domain" ] && [ ! -d "/etc/nginx/conf.d/$bluemap_domain.d" ]; then
@@ -64,9 +59,7 @@ ynh_setup_source --dest_dir="$install_dir" --source_id=fabric
 
 #=================================================
 # IMPORT AN EXISTING SERVER (optional)
-# Copy world, mods, configs and BlueMap data from a pre-existing server
-# directory. Binaries (server jar, fabric loader, JRE) are NOT imported —
-# they are (re)provisioned by this package.
+# Binaries (server jar, fabric loader, JRE) are NOT imported — this package (re)provisions them.
 #=================================================
 if [ -n "$import_dir" ]; then
     if [ ! -f "$import_dir/server.properties" ] && [ ! -d "$import_dir/world" ]; then
@@ -83,10 +76,7 @@ if [ -n "$import_dir" ]; then
     # A stale hand-run launcher can disagree with the systemd unit; drop it.
     ynh_safe_rm "$data_dir/startup.sh"
 
-    # Re-align the embedded web UIs' ports with the package's port
-    # resources (an imported config may bind the OLD ports, so nginx would
-    # proxy to nothing). server.properties is handled by the PORT ALIGNMENT
-    # section below, which runs for imports too.
+    # Re-align web UI ports with package port resources — an imported config may bind the OLD ports.
     [ -f "$data_dir/config/voicechat/voicechat-server.properties" ] && \
         sed -i "s/^port=.*/port=$port_voice/" "$data_dir/config/voicechat/voicechat-server.properties"
     [ -f "$data_dir/config/bluemap/webserver.conf" ] && \
@@ -100,10 +90,7 @@ echo "eula=true" > "$data_dir/eula.txt"
 
 #=================================================
 # PORT ALIGNMENT
-# Fresh installs default server.properties to 25565 — which may be taken
-# by another server on this box. Always pin the game port to the port
-# resource so systemd, the firewall and reality agree. (Write it now:
-# the file is created on first boot and would otherwise win.)
+# Pin the game port to the port resource: fresh installs default 25565 (may be taken); write now or first boot creates the file.
 #=================================================
 if [ -f "$data_dir/server.properties" ]; then
     sed -i -e "s/^server-port=.*/server-port=$port/" -e "s/^query.port=.*/query.port=$port/" "$data_dir/server.properties"
@@ -113,14 +100,10 @@ fi
 
 #=================================================
 # FABRIC SERVER PROVISIONING
-# The installer downloads Mojang's server jar + fabric loader and writes
-# fabric-server-launch.jar, which the systemd unit execs.
 #=================================================
 if [ ! -f "$data_dir/fabric-server-launch.jar" ]; then
     ynh_script_progression "Installing Minecraft $minecraft_version with Fabric (downloads from Mojang/FabricMC)..."
-    # -downloadMinecraft is REQUIRED: without it the installer writes a
-    # launcher expecting a server.jar that only a GUI/terminal client owns,
-    # and the headless server dies with "Missing game jar".
+    # -downloadMinecraft REQUIRED: without it the headless server dies with "Missing game jar".
     ynh_exec_as_app "$install_dir/jre/bin/java" -jar "$install_dir/fabric-installer.jar" \
         server -dir "$data_dir" -mcversion "$minecraft_version" -loader latest -downloadMinecraft
     if [ ! -f "$data_dir/fabric-server-launch.jar" ]; then
@@ -149,10 +132,7 @@ if [ -f "$YNH_APP_BASEDIR/doc/logo.png" ]; then
 fi
 
 if [ -n "$bluemap_domain" ]; then
-    # A dedicated map domain may still carry the OLD hand-written proxy
-    # fragment; two `location /` blocks in one vhost = nginx refuses to
-    # reload. Retire any other fragment (rename, reversible) since this
-    # package now provides the proxy for this domain.
+    # Two `location /` blocks in one vhost = nginx refuses to reload — retire other fragments (reversible rename).
     for frag in /etc/nginx/conf.d/$bluemap_domain.d/*.conf; do
         [ -e "$frag" ] || continue
         [ "$(basename "$frag")" = "$app.conf" ] && continue
@@ -170,8 +150,7 @@ fi
 
 #=================================================
 # START + READINESS
-# A first boot generates worlds/levelname etc. and can take a while on
-# HDD; poll the dashboard/loopback rather than fixed-sleeping.
+# First boot generates the world (slow on HDD) — poll for "Done (" instead of fixed sleep.
 #=================================================
 ynh_script_progression "Starting the server (first boot generates the world)..."
 ynh_systemctl --service="$app" --action=start --log_path=systemd --wait_until="Done \(" --timeout=600 || \

@@ -63,8 +63,7 @@ fi
 
 ynh_script_progression "Restarting the server..."
 systemctl daemon-reload
-# The unit file was restored by path, but the boot-time enable symlink is
-# not part of it — without this the server would not start after a reboot.
+# The enable symlink isn't part of the unit file — re-enable or the server won't start after reboot.
 systemctl enable "$app" >/dev/null 2>&1 || true
 systemctl restart "$app" || true
 

@@ -30,8 +30,7 @@ if [ -n "${bluemap_domain:-}" ]; then
     ynh_safe_rm "/etc/nginx/conf.d/$bluemap_domain.d/$app.conf"
     ynh_delete_file_checksum "/etc/nginx/conf.d/$bluemap_domain.d/$app.conf" 2>/dev/null || true
     ynh_systemctl --service=nginx --action=reload
-    # NB: the bluemap domain object itself belongs to the admin, not the app —
-    # it is intentionally left in place.
+    # NB: the bluemap domain object belongs to the admin — intentionally left in place.
 fi
 
 #=================================================

@@ -11,8 +11,6 @@ source /usr/share/yunohost/helpers
 # REFRESH RUNTIME SOURCES
 #=================================================
 
-# NB: $data_dir/$install_dir come from app settings — never hardcode.
-
 ram_mb="${ram_mb:-3072}"
 
 ynh_script_progression "Refreshing the Java runtime..."
@@ -40,7 +38,6 @@ fi
 # UPDATE PORTAL LOGO
 #=================================================
 
-# Keep the SSO portal tile logo in sync with the package
 if [ -f "$YNH_APP_BASEDIR/doc/logo.png" ]; then
     cp "$YNH_APP_BASEDIR/doc/logo.png" "/usr/share/yunohost/applogos/$app.png"
     yunohost user permission update "$app.main" --logo "/usr/share/yunohost/applogos/$app.png" || true
