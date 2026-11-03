@@ -9,9 +9,7 @@ Type=simple
 User=__APP__
 Group=__APP__
 WorkingDirectory=__DATA_DIR__
-# Fabric's own launcher jar (written by the fabric installer into the
-# server dir). Heap from the ram_mb app setting; raise with:
-#   yunohost app setting __APP__ ram_mb -v 4096 && systemctl restart __APP__
+# heap from the ram_mb setting: yunohost app setting __APP__ ram_mb -v 4096 && systemctl restart __APP__
 ExecStart=__INSTALL_DIR__/jre/bin/java -Xms__RAM_MB__m -Xmx__RAM_MB__m -jar fabric-server-launch.jar nogui
 Restart=on-failure
 RestartSec=10
@@ -21,12 +19,7 @@ TimeoutStopSec=120
 SuccessExitStatus=143
 LimitNOFILE=10000
 
-### Sandboxing baseline from example_ynh, applied verbatim. One addition
-### vs the template's minimal variant: the SystemCallFilter *deny*-list is
-### kept but NO `@system-service` allow-list is set — Minecraft mods use
-### native libraries (Simple Voice Chat) and JVM crash reporting paths
-### that trip allow-lists, and a syscall false-positive corrupts a running
-### world. Verified live with the full mod set on MC 26.2.
+# no @system-service allow-list: mod native libs + JVM crash paths trip allow-lists; a false positive corrupts a running world
  NoNewPrivileges=yes
  PrivateTmp=yes
  PrivateDevices=yes
